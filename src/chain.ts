@@ -2,6 +2,10 @@ import { Block } from "./block";
 import { logger } from "./logger";
 import { mempool } from "./mempool";
 import { db } from "./object";
+import { rebuildBlock } from "./miner";
+import { EventEmitter } from "node:events";
+
+const eventEmitter = new EventEmitter();
 
 class ChainManager {
     longestChainHeight: number = 0;
@@ -59,6 +63,7 @@ class ChainManager {
             this.longestChainTip = block;
             await mempool.reorg(lca, shortFork, longFork);
             // PSET 6: EMIT EVENT
+            let rebuilt = await rebuildBlock();
             await this.save();
         }
     }
