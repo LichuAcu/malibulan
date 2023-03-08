@@ -1,13 +1,17 @@
 // PSET 6
-
+import { hash } from './crypto/hash'
 import { mempool } from "./mempool";
 import { Transaction } from "./transaction";
 import { EventEmitter } from "node:events";
 import { db } from "./object";
 import { ver } from "./crypto/signature";
 import { canonicalize } from 'json-canonicalize'
+import { BlockObjectType } from './message';
+import { network } from './network'
 
-let newBlock;
+const TARGET = '00000000abc00000000000000000000000000000000000000000000000000000'
+
+let newBlock: BlockObjectType;
 
 async function findTxInMempool() {
     // returns tx object
@@ -44,8 +48,55 @@ export async function rebuildBlock() {
     }
 }
 
+// I don't know exactly how the event emitter thing works so I'm just simulating it 
+// w/ a boolean for now
+let event = false
+
+function converter (object: BlockObjectType) {
+    const netObj: BlockObjectType = {
+        type: 'block',
+        previd: object.previd,
+        txids: object.txids,
+        nonce: object.nonce,
+        T: object.T,
+        created: object.created,
+        miner: object.miner,
+      }
+  
+      if (object.note !== undefined) {
+        netObj.note = object.note
+      }
+      if (object.studentids !== undefined) {
+        netObj.studentids = object.studentids
+      }
+      return netObj
+}
+
+function randomIntFromInterval(min: number, max: number) { // min and max included 
+    return Math.floor(Math.random() * (max - min + 1) + min)
+  }
+
 while (true) {
     // hash newBlock with nonce
-    // if successful (PoW equation), broadcast
-    // update newBlock with new nonce++
+    rebuildBlock()
+    let curBlock = converter(newBlock)
+    let initNonce = randomIntFromInterval(0, 0x0fffffffffffffffffffffffffffffff)  // is warning here a problem?
+    curBlock.nonce = initNonce.toString()
+
+    while (true) {
+        let blockid = hash(canonicalize(curBlock))
+        // if successful (PoW equation), broadcast
+        if (BigInt(`0x${blockid}`) <= BigInt(`0x${TARGET}`)) {
+            network.broadcast(curBlock)  // seems like it can be gossipped w/out wrapper
+            break;
+        } 
+
+        // now I want to check whether there's been a new block and start mining the next
+        if (event) {
+            break;
+        }
+
+        // and if we still don't have it, update w/ nonce++ and try again
+        curBlock.nonce = curBlock.nonce + 1
+    }
 }
