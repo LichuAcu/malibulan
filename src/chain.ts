@@ -5,7 +5,7 @@ import { db } from "./object";
 import { rebuildBlock } from "./miner";
 import { EventEmitter } from "node:events";
 
-const eventEmitter = new EventEmitter();
+export let eventEmitter = new EventEmitter();
 
 class ChainManager {
     longestChainHeight: number = 0;
@@ -62,8 +62,10 @@ class ChainManager {
             this.longestChainHeight = height;
             this.longestChainTip = block;
             await mempool.reorg(lca, shortFork, longFork);
-            // PSET 6: EMIT EVENT
-            let rebuilt = await rebuildBlock();
+            // PSET 6
+            eventEmitter.emit("chaintip changed", this.longestChainTip);
+            // we do this in miner.ts
+            // let rebuilt = await rebuildBlock();
             await this.save();
         }
     }
