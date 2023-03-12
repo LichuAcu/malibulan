@@ -2,7 +2,6 @@ import { Block } from "./block";
 import { logger } from "./logger";
 import { mempool } from "./mempool";
 import { db } from "./object";
-import { rebuildBlock } from "./miner";
 import { EventEmitter } from "node:events";
 
 export let eventEmitter = new EventEmitter();
